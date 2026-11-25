@@ -156,6 +156,23 @@
       font-size: 0.82rem;
       font-weight: 600;
     }
+    .btn-bulk-danger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.95rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #f87171;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-bulk-danger:hover {
+      background: #fecaca;
+    }
     .admin-table-wrap {
       background: #ffffff;
       border: 1px solid var(--border);
@@ -186,6 +203,15 @@
     }
     .admin-table tr:hover td {
       background: #faf9f5;
+    }
+    .admin-table tr.is-selected td {
+      background: #fef9c3;
+    }
+    .row-checkbox {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--ink);
+      cursor: pointer;
     }
     .prod-cell {
       display: flex;
@@ -303,6 +329,9 @@
       border: 1px solid var(--border-strong);
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
     }
+    .admin-modal__box--confirm {
+      width: min(460px, 100%);
+    }
     .admin-modal__head {
       padding: 1.15rem 1.5rem;
       border-bottom: 1px solid var(--border);
@@ -412,6 +441,37 @@
       justify-content: flex-end;
       gap: 0.65rem;
     }
+    .confirm-list {
+      max-height: 170px;
+      overflow-y: auto;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.82rem;
+      color: var(--ink-2);
+      margin-top: 0.35rem;
+    }
+    .confirm-list li {
+      padding: 0.2rem 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .confirm-list li:last-child {
+      border-bottom: none;
+    }
+    .btn-danger-solid {
+      padding: 0.6rem 1.1rem;
+      border-radius: 6px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      background: #dc2626;
+      color: #ffffff;
+      border: 1px solid #b91c1c;
+      cursor: pointer;
+    }
+    .btn-danger-solid:hover {
+      background: #b91c1c;
+    }
 
     /* Pantalla de bloqueo por PIN */
     .lock-overlay {
@@ -505,7 +565,7 @@
         </div>
 
         <button type="button" class="btn btn--ghost-light btn--sm-pad" id="openSettingsModalBtn">
-          &#9881; Configurar Tienda / Catálogo
+          &#9881; Configurar Tienda
         </button>
 
         <button type="button" class="btn btn--wa-solid btn--sm-pad" id="newProductBtn">
@@ -549,7 +609,7 @@
       </div>
     </div>
 
-    <!-- ===== BARRA DE FILTROS Y BÚSQUEDA DEL ADMIN ===== -->
+    <!-- ===== BARRA DE FILTROS, SELECCIÓN MÚLTIPLE Y BÚSQUEDA DEL ADMIN ===== -->
     <div class="admin-toolbar">
       <div class="admin-toolbar__filters">
         <input
@@ -574,18 +634,37 @@
         </select>
       </div>
 
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <div style="display:flex;gap:0.55rem;flex-wrap:wrap;align-items:center">
+        <button
+          type="button"
+          class="btn-bulk-danger"
+          id="deleteSelectedBtn"
+          hidden
+          title="Eliminar todos los productos marcados con casilla"
+        >
+          &#128465; <span id="deleteSelectedText">Eliminar seleccionados (0)</span>
+        </button>
+
         <button type="button" class="btn btn--primary btn--sm-pad" id="newProductBtn2">
           + Subir Perfume o Prenda
         </button>
       </div>
     </div>
 
-    <!-- ===== TABLA DE PRODUCTOS EN FIREBASE ===== -->
+    <!-- ===== TABLA DE PRODUCTOS EN FIREBASE CON SELECCIÓN MÚLTIPLE ===== -->
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>
           <tr>
+            <th style="width:44px;text-align:center">
+              <input
+                type="checkbox"
+                id="selectAllCheckbox"
+                class="row-checkbox"
+                title="Seleccionar o desmarcar todos los visibles"
+                aria-label="Seleccionar todos"
+              />
+            </th>
             <th>Producto &amp; Descripción</th>
             <th>Depto. / Categoría</th>
             <th>Precio ($ MXN)</th>
@@ -655,7 +734,7 @@
 
         <div class="form-grid-3">
           <div class="field">
-            <label class="field__label" for="fPrice">Precio ($ MXN)</label>
+            <label class="field__label" for="fPrice">Precio</label>
             <input type="number" id="fPrice" min="0" step="1" placeholder="Vacío = Cotizar por WhatsApp" />
             <span class="field__hint">Déjalo vacío si prefieres dar precio por WhatsApp.</span>
           </div>
@@ -777,8 +856,8 @@
             </div>
             <div style="display:flex;flex-direction:column;gap:0.45rem">
               <input type="file" id="fImgFile" accept="image/*" />
-              <input type="text" id="fImgUrl" placeholder="O ruta/URL: ej. img/products/dior_sauvage.jpg" />
-              <span class="field__hint">Se comprime automáticamente (~40 KB) para guardarse gratis en Firestore sin usar Storage de pago.</span>
+              <input type="text" id="fImgUrl" placeholder="O pega una URL de imagen" />
+              <span class="field__hint">Tu foto se comprime automáticamente (~40 KB) para guardarse gratis en Firestore.</span>
             </div>
           </div>
         </div>
@@ -791,7 +870,7 @@
     </div>
   </div>
 
-  <!-- ===== MODAL 2: CONFIGURACIÓN GENERAL Y HERRAMIENTAS DE CATÁLOGO ===== -->
+  <!-- ===== MODAL 2: CONFIGURACIÓN GENERAL DE LA TIENDA ===== -->
   <div class="admin-modal" id="settingsModal" hidden>
     <div class="admin-modal__backdrop" data-close-settings-modal></div>
     <div class="admin-modal__box" role="dialog" aria-modal="true">
@@ -829,16 +908,13 @@
         </div>
 
         <div class="field" style="padding-top:0.75rem;border-top:1px solid var(--border)">
-          <label class="field__label">Herramientas de Base de Datos (Opcional)</label>
+          <label class="field__label">Limpieza Total de Base de Datos</label>
           <p class="field__hint" style="margin-bottom:0.65rem">
-            Tu tienda pública ya no tiene datos quemados: solo muestra lo que esté subido a Firebase. Puedes empezar subiendo tus productos uno por uno o usar estas acciones rápidas:
+            Si deseas vaciar absolutamente todos los productos de Firebase Firestore y dejar la tienda en 0:
           </p>
           <div style="display:flex;flex-wrap:wrap;gap:0.6rem">
-            <button type="button" class="btn btn--outline btn--sm-pad" id="importSeedBtn">
-              &#9729; Importar los 95 Perfumes + 12 Prendas de Muestra a Firebase
-            </button>
             <button type="button" class="btn btn--outline btn--sm-pad" id="clearAllCloudBtn" style="color:var(--red)">
-              Vaciar Todos los Productos de Firebase (Dejar en 0)
+              &#128465; Vaciar Todos los Productos de Firebase (Dejar en 0)
             </button>
           </div>
         </div>
@@ -851,9 +927,34 @@
     </div>
   </div>
 
+  <!-- ===== MODAL 3: CONFIRMACIÓN "¿ESTÁS SEGURO?" PARA ELIMINACIÓN INDIVIDUAL O MÚLTIPLE ===== -->
+  <div class="admin-modal" id="confirmDeleteModal" hidden>
+    <div class="admin-modal__backdrop" data-close-confirm-modal></div>
+    <div class="admin-modal__box admin-modal__box--confirm" role="dialog" aria-modal="true" aria-labelledby="confirmDeleteTitle">
+      <div class="admin-modal__head">
+        <h2 class="admin-modal__title" id="confirmDeleteTitle">¿Estás seguro de eliminar?</h2>
+        <button type="button" class="drawer__close" data-close-confirm-modal>&times;</button>
+      </div>
+
+      <div class="admin-form">
+        <p id="confirmDeleteMessage" style="font-size:0.9rem;color:var(--ink-2);line-height:1.45"></p>
+        <ul class="confirm-list" id="confirmDeleteList"></ul>
+        <p style="font-size:0.76rem;color:var(--red);font-weight:600">
+          Esta acción eliminará los productos seleccionados de Firebase Firestore de forma permanente.
+        </p>
+      </div>
+
+      <div class="admin-modal__foot">
+        <button type="button" class="btn btn--outline" data-close-confirm-modal>No, Cancelar</button>
+        <button type="button" class="btn-danger-solid" id="confirmDeleteYesBtn">
+          Sí, estoy seguro, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
-  <script src="js/seed-catalog.js"></script>
   <script src="js/admin-db.js"></script>
   <script src="js/admin.js"></script>
 </body>

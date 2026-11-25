@@ -3,10 +3,9 @@
    ------------------------------------------------------------
    - Conectado directamente a Firebase Firestore (`luxora-perfumes-store`)
    - Plan Spark 100% Gratuito ($0 costo, sin Firebase Storage de pago)
-   - Las imágenes subidas se comprimen en el navegador (~40 KB) y se
-     almacenan directo en el documento de Firestore.
-   - Cero datos quemados por defecto: muestra únicamente lo que existe
-     en Firebase Firestore en tiempo real.
+   - Incluye eliminación individual y eliminación múltiple por lotes
+     (Batch Delete) con confirmación de seguridad.
+   - Cero datos quemados: solo muestra lo que tú subas a Firebase.
    ============================================================ */
 
 (function (global) {
@@ -241,105 +240,31 @@
     return true;
   }
 
-  async function clearAllProductsInFirebase() {
+  // Elimina múltiples productos seleccionados en un solo lote (Batch) de Firestore
+  async function deleteProductsBatch(ids = []) {
     if (!firebaseConnected || !firestoreDb) {
       throw new Error("No hay conexión activa con Firebase Firestore.");
     }
+    const cleanIds = Array.from(new Set(ids.filter(Boolean)));
+    if (!cleanIds.length) return 0;
+
     const { doc, writeBatch } = await import(
       "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
     );
-    const items = [...cloudProducts];
     const chunkSize = 400;
-    for (let i = 0; i < items.length; i += chunkSize) {
+    for (let i = 0; i < cleanIds.length; i += chunkSize) {
       const batch = writeBatch(firestoreDb);
-      items.slice(i, i + chunkSize).forEach((item) => {
-        batch.delete(doc(firestoreDb, "products", item.id || item.uid));
+      cleanIds.slice(i, i + chunkSize).forEach((id) => {
+        batch.delete(doc(firestoreDb, "products", id));
       });
       await batch.commit();
     }
-    return items.length;
+    return cleanIds.length;
   }
 
-  async function importSeedCatalogToFirebase() {
-    if (!firebaseConnected || !firestoreDb) {
-      throw new Error("No hay conexión activa con Firebase Firestore.");
-    }
-    if (typeof PRODUCTS === "undefined" && typeof APPAREL_PRODUCTS === "undefined") {
-      throw new Error("El archivo de catálogo semilla no está disponible.");
-    }
-
-    const perfSeed = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map((p, idx) => {
-      const id = `perf-${idx}`;
-      return {
-        id,
-        uid: id,
-        dept: "perfumes",
-        brand: p.brand || "Marca",
-        name: p.name || "Perfume",
-        notes: p.notes || "",
-        g: p.g || "u",
-        tier: p.tier || "designer",
-        cat: p.cat || "amber",
-        family: p.family || "Aroma Exclusivo",
-        conc: p.conc || "Eau de Parfum",
-        sizeMl: p.sizeMl || "100 ml",
-        img: p.img || "",
-        price: typeof p.price === "number" ? p.price : null,
-        oldPrice: typeof p.oldPrice === "number" ? p.oldPrice : null,
-        status: "available",
-        badge: p.badge || "",
-        description: buildCommercialDescription({ ...p, dept: "perfumes" }),
-        order: idx,
-        updatedAt: Date.now()
-      };
-    });
-
-    const appSeed = (typeof APPAREL_PRODUCTS !== "undefined" ? APPAREL_PRODUCTS : []).map(
-      (p, idx) => {
-        const id = `app-${idx}`;
-        return {
-          id,
-          uid: id,
-          dept: "apparel",
-          brand: p.brand || "Luxora Studio",
-          name: p.name || "Prenda",
-          notes: p.notes || "",
-          g: p.g || "u",
-          line: p.line || "streetwear",
-          subcat: p.subcat || "playeras",
-          family: p.family || "Ropa & Moda",
-          fit: p.fit || "Regular Fit",
-          sizes: Array.isArray(p.sizes) && p.sizes.length ? p.sizes : ["S", "M", "L", "XL"],
-          colors:
-            Array.isArray(p.colors) && p.colors.length
-              ? p.colors
-              : [{ name: "Negro", hex: "#1b1b1b" }],
-          silhouette: p.silhouette || "tee",
-          img: p.img || "",
-          price: typeof p.price === "number" ? p.price : null,
-          oldPrice: typeof p.oldPrice === "number" ? p.oldPrice : null,
-          status: "available",
-          badge: "",
-          description: buildCommercialDescription({ ...p, dept: "apparel" }),
-          order: 1000 + idx,
-          updatedAt: Date.now()
-        };
-      }
-    );
-
-    const allSeed = [...perfSeed, ...appSeed];
-    const { doc, writeBatch } = await import(
-      "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
-    );
-    const chunkSize = 400;
-    for (let i = 0; i < allSeed.length; i += chunkSize) {
-      const batch = writeBatch(firestoreDb);
-      allSeed.slice(i, i + chunkSize).forEach((item) => {
-        batch.set(doc(firestoreDb, "products", item.id), item);
-      });
-      await batch.commit();
-    }
-    return allSeed.length;
+  async function clearAllProductsInFirebase() {
+    const allIds = cloudProducts.map((item) => item.id || item.uid);
+    return deleteProductsBatch(allIds);
   }
 
   // Comprime cualquier foto subida desde el celular o PC (~35-55 KB) para guardarla gratis en Firestore
@@ -389,8 +314,8 @@
     getAllProducts,
     saveProduct,
     deleteProduct,
+    deleteProductsBatch,
     clearAllProductsInFirebase,
-    importSeedCatalogToFirebase,
     getStoreSettings,
     saveStoreSettings,
     getActiveFirebaseConfig,

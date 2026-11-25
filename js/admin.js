@@ -79,6 +79,9 @@
     String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
   let allProducts = [];
+  let currentFilteredIds = [];
+  const selectedIds = new Set();
+  let pendingDeleteIds = [];
 
   // ---------- Bloqueo de Seguridad por PIN ----------
   const lockOverlay = $("#adminLockOverlay");
@@ -131,6 +134,11 @@
 
   function updateStats() {
     allProducts = LuxoraAdminDB.getAllProducts();
+    const validIdSet = new Set(allProducts.map((x) => x.id || x.uid));
+    Array.from(selectedIds).forEach((id) => {
+      if (!validIdSet.has(id)) selectedIds.delete(id);
+    });
+
     const perfs = allProducts.filter((x) => x.dept === "perfumes");
     const apps = allProducts.filter((x) => x.dept === "apparel");
     const priced = allProducts.filter((x) => x.price && x.price > 0);
@@ -146,6 +154,37 @@
     $("#brandSuggestions").innerHTML = brands
       .map((b) => `<option value="${b}"></option>`)
       .join("");
+  }
+
+  function updateBulkDeleteUI() {
+    const btn = $("#deleteSelectedBtn");
+    const txt = $("#deleteSelectedText");
+    const selectAllCb = $("#selectAllCheckbox");
+    const count = selectedIds.size;
+
+    if (count > 0) {
+      btn.hidden = false;
+      txt.textContent =
+        count === 1
+          ? "Eliminar seleccionado (1)"
+          : `Eliminar seleccionados (${count})`;
+    } else {
+      btn.hidden = true;
+    }
+
+    if (selectAllCb) {
+      if (currentFilteredIds.length === 0) {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+      } else {
+        const selectedVisible = currentFilteredIds.filter((id) =>
+          selectedIds.has(id)
+        ).length;
+        selectAllCb.checked = selectedVisible === currentFilteredIds.length;
+        selectAllCb.indeterminate =
+          selectedVisible > 0 && selectedVisible < currentFilteredIds.length;
+      }
+    }
   }
 
   function renderTable() {
@@ -170,25 +209,29 @@
       return true;
     });
 
+    currentFilteredIds = filtered.map((item) => item.id || item.uid);
+
     const tbody = $("#adminTableBody");
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align:center;padding:3rem 1.5rem;color:var(--muted)">
+          <td colspan="7" style="text-align:center;padding:3rem 1.5rem;color:var(--muted)">
             ${
               allProducts.length === 0
-                ? `<strong style="display:block;color:var(--ink);font-size:1rem;margin-bottom:0.35rem">Tu base de datos en Firebase está limpia (0 productos quemados)</strong>
-                   Haz clic en <strong>"+ Añadir Producto"</strong> arriba para subir tu primer perfume o prenda en tiempo real.`
+                ? `<strong style="display:block;color:var(--ink);font-size:1rem;margin-bottom:0.35rem">Tu base de datos en Firebase está limpia (0 productos)</strong>
+                   Haz clic en <strong>"+ Añadir Producto"</strong> arriba para subir tus propios perfumes o prendas uno por uno.`
                 : "No se encontraron productos con ese filtro o búsqueda."
             }
           </td>
         </tr>`;
+      updateBulkDeleteUI();
       return;
     }
 
     tbody.innerHTML = filtered
       .map((item) => {
         const id = item.id || item.uid;
+        const isChecked = selectedIds.has(id);
         const isAvailable = item.status !== "out_of_stock" && item.status !== "hidden";
         const catText =
           item.dept === "perfumes"
@@ -209,7 +252,16 @@
         };
 
         return `
-          <tr data-row-id="${id}">
+          <tr data-row-id="${id}" class="${isChecked ? "is-selected" : ""}">
+            <td style="text-align:center">
+              <input
+                type="checkbox"
+                class="row-checkbox"
+                data-select-id="${id}"
+                ${isChecked ? "checked" : ""}
+                aria-label="Seleccionar ${item.name}"
+              />
+            </td>
             <td>
               <div class="prod-cell">
                 ${thumbHtml}
@@ -271,7 +323,80 @@
           </tr>`;
       })
       .join("");
+
+    updateBulkDeleteUI();
   }
+
+  // ---------- Modal de Confirmación "¿Estás seguro?" ----------
+  const confirmModal = $("#confirmDeleteModal");
+
+  function openConfirmDeleteModal(idsToDelete = []) {
+    const validItems = idsToDelete
+      .map((id) => allProducts.find((x) => (x.id || x.uid) === id))
+      .filter(Boolean);
+
+    if (!validItems.length) return;
+    pendingDeleteIds = validItems.map((x) => x.id || x.uid);
+
+    $("#confirmDeleteTitle").textContent =
+      validItems.length === 1
+        ? "¿Estás seguro de eliminar este producto?"
+        : `¿Estás seguro de eliminar ${validItems.length} productos?`;
+
+    $("#confirmDeleteMessage").textContent =
+      validItems.length === 1
+        ? "Vas a eliminar el siguiente producto del catálogo en tiempo real:"
+        : `Has seleccionado ${validItems.length} productos para eliminarlos en lote:`;
+
+    $("#confirmDeleteList").innerHTML = validItems
+      .map((item) => `<li><strong>${item.name}</strong> — ${item.brand}</li>`)
+      .join("");
+
+    confirmModal.hidden = false;
+  }
+
+  function closeConfirmDeleteModal() {
+    confirmModal.hidden = true;
+    pendingDeleteIds = [];
+  }
+
+  $("#confirmDeleteYesBtn").addEventListener("click", async () => {
+    if (!pendingDeleteIds.length) return;
+    const ids = [...pendingDeleteIds];
+    closeConfirmDeleteModal();
+
+    try {
+      showToast(
+        ids.length === 1
+          ? "Eliminando producto de Firebase…"
+          : `Eliminando ${ids.length} productos de Firebase…`
+      );
+      await LuxoraAdminDB.deleteProductsBatch(ids);
+      ids.forEach((id) => selectedIds.delete(id));
+      renderTable();
+      showToast(
+        ids.length === 1
+          ? "✓ Producto eliminado de Firebase"
+          : `✓ ${ids.length} productos eliminados de Firebase`
+      );
+    } catch (err) {
+      showToast("Error al eliminar: " + err.message);
+    }
+  });
+
+  // Eventos de selección múltiple (Checkboxes)
+  $("#selectAllCheckbox").addEventListener("change", (e) => {
+    const checked = e.target.checked;
+    currentFilteredIds.forEach((id) => {
+      if (checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+    });
+    renderTable();
+  });
+
+  $("#deleteSelectedBtn").addEventListener("click", () => {
+    openConfirmDeleteModal(Array.from(selectedIds));
+  });
 
   // ---------- Formulario de Crear / Editar Producto ----------
   const productModal = $("#productModal");
@@ -455,6 +580,17 @@
 
   // ---------- Eventos en la Tabla ----------
   $("#adminTableBody").addEventListener("change", async (e) => {
+    const selectCb = e.target.closest("[data-select-id]");
+    if (selectCb) {
+      const id = selectCb.dataset.selectId;
+      if (selectCb.checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      const row = selectCb.closest("tr");
+      if (row) row.classList.toggle("is-selected", selectCb.checked);
+      updateBulkDeleteUI();
+      return;
+    }
+
     const priceInput = e.target.closest("[data-quick-price]");
     if (priceInput) {
       const id = priceInput.dataset.quickPrice;
@@ -503,16 +639,7 @@
     const delBtn = e.target.closest("[data-delete-id]");
     if (delBtn) {
       const id = delBtn.dataset.deleteId;
-      const item = allProducts.find((x) => (x.id || x.uid) === id);
-      if (!item) return;
-      if (confirm(`¿Seguro que deseas eliminar "${item.name}" (${item.brand}) de Firebase?`)) {
-        try {
-          await LuxoraAdminDB.deleteProduct(id);
-          showToast(`Eliminado de Firebase: "${item.name}"`);
-        } catch (err) {
-          showToast("Error al eliminar: " + err.message);
-        }
-      }
+      openConfirmDeleteModal([id]);
     }
   });
 
@@ -545,38 +672,14 @@
     }
   });
 
-  $("#importSeedBtn").addEventListener("click", async () => {
-    if (
-      confirm(
-        "¿Deseas subir a Firebase el catálogo base de muestra (95 perfumes y 12 prendas)? Podrás editarlos o borrarlos individualmente."
-      )
-    ) {
-      try {
-        showToast("Subiendo productos a Firebase Firestore…");
-        const count = await LuxoraAdminDB.importSeedCatalogToFirebase();
-        settingsModal.hidden = true;
-        showToast(`✓ ¡${count} productos subidos a Firebase Firestore!`);
-      } catch (err) {
-        showToast("Error importando catálogo: " + err.message);
-      }
+  $("#clearAllCloudBtn").addEventListener("click", () => {
+    settingsModal.hidden = true;
+    const allIds = allProducts.map((x) => x.id || x.uid);
+    if (!allIds.length) {
+      showToast("La base de datos ya está vacía (0 productos).");
+      return;
     }
-  });
-
-  $("#clearAllCloudBtn").addEventListener("click", async () => {
-    if (
-      confirm(
-        "¿Seguro que deseas vaciar TODOS los productos de Firebase Firestore para dejar la tienda en 0 productos?"
-      )
-    ) {
-      try {
-        showToast("Vaciando colección de productos en Firebase…");
-        const deleted = await LuxoraAdminDB.clearAllProductsInFirebase();
-        settingsModal.hidden = true;
-        showToast(`✓ Base de datos limpia (${deleted} productos eliminados)`);
-      } catch (err) {
-        showToast("Error vaciando base de datos: " + err.message);
-      }
-    }
+    openConfirmDeleteModal(allIds);
   });
 
   $("#adminSearch").addEventListener("input", renderTable);
@@ -588,6 +691,7 @@
   document.addEventListener("click", (e) => {
     if (e.target.closest("[data-close-prod-modal]")) closeProductModal();
     if (e.target.closest("[data-close-settings-modal]")) settingsModal.hidden = true;
+    if (e.target.closest("[data-close-confirm-modal]")) closeConfirmDeleteModal();
   });
 
   // Suscripción a cambios en tiempo real de Firestore
