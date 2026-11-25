@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#121110" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>LUXORA Admin Studio · Gestión Privada Firebase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .admin-body {
+      background: #f3f1ec;
+      min-height: 100vh;
+      padding-bottom: 4rem;
+    }
+    .admin-header {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      background: var(--ink);
+      color: #ffffff;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 2px solid #d4b475;
+    }
+    .admin-header__inner {
+      max-width: 1420px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .admin-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .admin-brand__title {
+      font-family: var(--serif);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: #ffffff;
+    }
+    .admin-brand__badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.22rem 0.6rem;
+      border-radius: 4px;
+      background: #d4b475;
+      color: var(--ink);
+    }
+    .admin-header__actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+    .db-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 99px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.1);
+      color: #e6e0d4;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .db-pill__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #f59e0b;
+    }
+    .db-pill.is-cloud .db-pill__dot {
+      background: #22c55e;
+    }
+    .admin-wrap {
+      max-width: 1420px;
+      margin: 1.5rem auto 0;
+      padding: 0 clamp(0.9rem, 3vw, 2.5rem);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .stat-card__label {
+      font-size: 0.73rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .stat-card__val {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1.1;
+    }
+    .stat-card__sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .admin-toolbar {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .admin-toolbar__filters {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      flex: 1;
+    }
+    .admin-search {
+      flex: 1 1 250px;
+      max-width: 380px;
+      padding: 0.58rem 0.9rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: var(--bg);
+      font-size: 0.86rem;
+    }
+    .admin-select {
+      padding: 0.58rem 0.85rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .admin-table-wrap {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.84rem;
+    }
+    .admin-table th {
+      background: var(--bg);
+      padding: 0.8rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .admin-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .admin-table tr:hover td {
+      background: #faf9f5;
+    }
+    .prod-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 240px;
+    }
+    .prod-cell__thumb {
+      width: 50px;
+      height: 50px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      padding: 3px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .prod-cell__name {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 0.92rem;
+    }
+    .prod-cell__brand {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent-dark);
+    }
+    .prod-cell__desc {
+      font-size: 0.74rem;
+      color: var(--muted);
+      max-width: 320px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .quick-price-input {
+      width: 105px;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: var(--bg);
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    .quick-price-input:focus {
+      background: #ffffff;
+      border-color: var(--ink);
+      outline: none;
+    }
+    .status-toggle-btn {
+      padding: 0.32rem 0.65rem;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .status-toggle-btn.is-available {
+      background: var(--green-bg);
+      color: var(--green);
+      border-color: #b7e4cc;
+    }
+    .status-toggle-btn.is-out {
+      background: var(--red-bg);
+      color: var(--red);
+      border-color: #f5b6b1;
+    }
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .action-btn {
+      padding: 0.38rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
+    }
+    .action-btn:hover {
+      border-color: var(--ink);
+      background: var(--bg);
+    }
+    .action-btn--danger {
+      color: var(--red);
+      border-color: #f3c1bd;
+    }
+    .action-btn--danger:hover {
+      background: var(--red-bg);
+      border-color: var(--red);
+    }
+    .admin-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 110;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+    .admin-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 17, 16, 0.65);
+      backdrop-filter: blur(3px);
+    }
+    .admin-modal__box {
+      position: relative;
+      z-index: 2;
+      width: min(760px, 100%);
+      max-height: 92vh;
+      overflow-y: auto;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    }
+    .admin-modal__head {
+      padding: 1.15rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: #ffffff;
+      z-index: 3;
+    }
+    .admin-modal__title {
+      font-family: var(--serif);
+      font-size: 1.55rem;
+      font-weight: 700;
+    }
+    .admin-form {
+      padding: 1.35rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.9rem;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.32rem;
+    }
+    .field__label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--ink-2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      padding: 0.62rem 0.8rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: var(--bg);
+      font-size: 0.88rem;
+      color: var(--ink);
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      background: #ffffff;
+      border-color: var(--ink);
+      outline: none;
+    }
+    .field textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+    .field__hint {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .auto-desc-btn {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent-dark);
+      text-decoration: underline;
+    }
+    .img-upload-box {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.85rem;
+      border: 1px dashed var(--border-strong);
+      border-radius: 8px;
+      background: var(--bg);
+    }
+    .img-preview {
+      width: 88px;
+      height: 88px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .img-preview img {
+      max-height: 80px;
+      width: auto;
+      object-fit: contain;
+    }
+    .admin-modal__foot {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.65rem;
+    }
+
+    /* Pantalla de bloqueo por PIN */
+    .lock-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: #121110;
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      padding: 1.5rem;
+    }
+    .lock-card {
+      width: min(400px, 100%);
+      background: #1c1a18;
+      border: 1px solid rgba(212, 180, 117, 0.35);
+      border-radius: 14px;
+      padding: 2rem 1.75rem;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    }
+    .lock-card__title {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.25rem;
+    }
+    .lock-card__sub {
+      font-size: 0.8rem;
+      color: #b7b0a4;
+      margin-bottom: 1.4rem;
+    }
+    .lock-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: #121110;
+      color: #ffffff;
+      font-size: 1.15rem;
+      text-align: center;
+      letter-spacing: 0.25em;
+      margin-bottom: 0.9rem;
+    }
+    @media (max-width: 720px) {
+      .form-grid-2,
+      .form-grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body class="admin-body">
+  <!-- ===== PANTALLA DE ACCESO PRIVADO (PIN) ===== -->
+  <div class="lock-overlay" id="adminLockOverlay">
+    <form class="lock-card" id="adminLockForm">
+      <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.12em;color:#d4b475;text-transform:uppercase;margin-bottom:0.4rem">
+        App Privada Independiente
+      </div>
+      <h1 class="lock-card__title">LUXORA ADMIN</h1>
+      <p class="lock-card__sub">Ingresa tu PIN de Administrador para gestionar el catálogo en Firebase.</p>
+      <input
+        type="password"
+        id="adminPinInput"
+        class="lock-input"
+        placeholder="••••"
+        autocomplete="current-password"
+        required
+      />
+      <p id="adminLockError" hidden style="color:#f87171;font-size:0.78rem;margin-bottom:0.75rem">
+        PIN incorrecto. Intenta nuevamente (PIN inicial: 1234).
+      </p>
+      <button type="submit" class="btn btn--primary btn--block">
+        Entrar al Panel Admin
+      </button>
+    </form>
+  </div>
+
+  <!-- ===== HEADER DE LA APP ADMINISTRADORA ===== -->
+  <header class="admin-header">
+    <div class="admin-header__inner">
+      <div class="admin-brand">
+        <span class="admin-brand__title">LUXORA</span>
+        <span class="admin-brand__badge">App Admin Privada</span>
+      </div>
+
+      <div class="admin-header__actions">
+        <div class="db-pill" id="dbStatusPill" title="Conectado a Firebase Firestore (Plan Gratuito Spark)">
+          <span class="db-pill__dot"></span>
+          <span id="dbStatusText">Conectando a Firebase…</span>
+        </div>
+
+        <button type="button" class="btn btn--ghost-light btn--sm-pad" id="openSettingsModalBtn">
+          &#9881; Configurar Tienda / Catálogo
+        </button>
+
+        <button type="button" class="btn btn--wa-solid btn--sm-pad" id="newProductBtn">
+          + Añadir Producto
+        </button>
+
+        <button type="button" class="btn btn--outline btn--sm-pad" id="lockSessionBtn" title="Bloquear panel">
+          Bloquear
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin-wrap">
+    <!-- ===== TARJETAS DE RESUMEN EN TIEMPO REAL DESDE FIREBASE ===== -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-card__label">Total en Firebase</span>
+        <strong class="stat-card__val" id="statTotal">0</strong>
+        <span class="stat-card__sub">Productos en la nube</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label">Perfumes</span>
+        <strong class="stat-card__val" id="statPerfumes">0</strong>
+        <span class="stat-card__sub">En colección Firestore</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label">Ropa &amp; Calzado</span>
+        <strong class="stat-card__val" id="statApparel">0</strong>
+        <span class="stat-card__sub">Formal y Streetwear</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label">Con Precio Visible</span>
+        <strong class="stat-card__val" id="statPriced">0</strong>
+        <span class="stat-card__sub">El resto dice "Cotizar"</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label">Agotados</span>
+        <strong class="stat-card__val" id="statOut">0</strong>
+        <span class="stat-card__sub">Actívalos en 1 clic</span>
+      </div>
+    </div>
+
+    <!-- ===== BARRA DE FILTROS Y BÚSQUEDA DEL ADMIN ===== -->
+    <div class="admin-toolbar">
+      <div class="admin-toolbar__filters">
+        <input
+          type="search"
+          id="adminSearch"
+          class="admin-search"
+          placeholder="Buscar producto en Firebase por nombre, marca o nota…"
+        />
+
+        <select id="adminDeptFilter" class="admin-select" aria-label="Filtrar por departamento">
+          <option value="all">Todos los Departamentos</option>
+          <option value="perfumes">Solo Perfumes</option>
+          <option value="apparel">Solo Ropa &amp; Calzado</option>
+        </select>
+
+        <select id="adminStatusFilter" class="admin-select" aria-label="Filtrar por estado">
+          <option value="all">Todos los Estados</option>
+          <option value="available">Solo Disponibles</option>
+          <option value="out_of_stock">Solo Agotados</option>
+          <option value="priced">Con Precio Asignado</option>
+          <option value="unpriced">Sin Precio (Por Cotizar)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button type="button" class="btn btn--primary btn--sm-pad" id="newProductBtn2">
+          + Subir Perfume o Prenda
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== TABLA DE PRODUCTOS EN FIREBASE ===== -->
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Producto &amp; Descripción</th>
+            <th>Depto. / Categoría</th>
+            <th>Precio ($ MXN)</th>
+            <th>Estado</th>
+            <th>Etiqueta</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== MODAL 1: CREAR / EDITAR PRODUCTO EN FIREBASE ===== -->
+  <div class="admin-modal" id="productModal" hidden>
+    <div class="admin-modal__backdrop" data-close-prod-modal></div>
+    <div class="admin-modal__box" role="dialog" aria-modal="true" aria-labelledby="prodModalTitle">
+      <div class="admin-modal__head">
+        <h2 class="admin-modal__title" id="prodModalTitle">Subir Nuevo Producto a Firebase</h2>
+        <button type="button" class="drawer__close" data-close-prod-modal>&times;</button>
+      </div>
+
+      <form class="admin-form" id="productForm">
+        <input type="hidden" id="fId" />
+
+        <div class="form-grid-3">
+          <div class="field">
+            <label class="field__label" for="fDept">Departamento *</label>
+            <select id="fDept" required>
+              <option value="perfumes">Perfumería</option>
+              <option value="apparel">Ropa &amp; Calzado</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fStatus">Disponibilidad *</label>
+            <select id="fStatus">
+              <option value="available">✓ Disponible en tienda</option>
+              <option value="out_of_stock">✕ Agotado temporalmente</option>
+              <option value="hidden">Oculto (No mostrar)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fBadge">Etiqueta Destacada</label>
+            <select id="fBadge">
+              <option value="">Sin etiqueta</option>
+              <option value="bestseller">★ Más Vendido</option>
+              <option value="new">Nuevo Lanzamiento</option>
+              <option value="promo">En Oferta</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="field">
+            <label class="field__label" for="fName">Nombre del Producto *</label>
+            <input type="text" id="fName" required placeholder="Ej. Sauvage Elixir o Camisa Oxford Lino" />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fBrand">Marca *</label>
+            <input type="text" id="fBrand" list="brandSuggestions" required placeholder="Ej. Dior, Chanel, Creed, Luxora…" />
+            <datalist id="brandSuggestions"></datalist>
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="field">
+            <label class="field__label" for="fPrice">Precio ($ MXN)</label>
+            <input type="number" id="fPrice" min="0" step="1" placeholder="Vacío = Cotizar por WhatsApp" />
+            <span class="field__hint">Déjalo vacío si prefieres dar precio por WhatsApp.</span>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fOldPrice">Precio Anterior (Oferta)</label>
+            <input type="number" id="fOldPrice" min="0" step="1" placeholder="Opcional (se verá tachado)" />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fGender">Para quién *</label>
+            <select id="fGender">
+              <option value="h">Hombre</option>
+              <option value="m">Mujer</option>
+              <option value="u">Unisex</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Campos exclusivos de PERFUMERÍA -->
+        <div id="perfumeFieldsGroup" class="form-grid-2" style="padding:0.85rem;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <div class="field">
+            <label class="field__label" for="fCat">Categoría de Aroma *</label>
+            <select id="fCat">
+              <option value="gourmand">Dulces y Vainilla</option>
+              <option value="fresh">Frescos y Cítricos</option>
+              <option value="woody">Maderas y Cuero</option>
+              <option value="floral">Florales y Frutales</option>
+              <option value="amber">Ámbar e Intensos</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fTier">Gama del Perfume</label>
+            <select id="fTier">
+              <option value="designer">Marca de Diseñador</option>
+              <option value="niche">Perfumería Nicho / Exclusiva</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fConc">Concentración</label>
+            <input type="text" id="fConc" placeholder="Ej. Eau de Parfum, Eau de Toilette, Extrait" value="Eau de Parfum" />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fSizeMl">Tamaño / Mililitros</label>
+            <input type="text" id="fSizeMl" placeholder="Ej. 100 ml, 70 ml, 125 ml" value="100 ml" />
+          </div>
+        </div>
+
+        <!-- Campos exclusivos de ROPA & CALZADO -->
+        <div id="apparelFieldsGroup" class="form-grid-2" hidden style="padding:0.85rem;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <div class="field">
+            <label class="field__label" for="fLine">Estilo / Línea de Ropa</label>
+            <select id="fLine">
+              <option value="formal">Formal y Smart Casual</option>
+              <option value="streetwear">Streetwear y Urbano</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fSubcat">Tipo de Prenda</label>
+            <select id="fSubcat">
+              <option value="camisas">Camisas y Lino</option>
+              <option value="sacos">Sacos y Blazers</option>
+              <option value="playeras">Playeras</option>
+              <option value="hoodies">Hoodies y Sudaderas</option>
+              <option value="pantalones">Pantalones</option>
+              <option value="vestidos">Vestidos</option>
+              <option value="sneakers">Tenis / Calzado</option>
+              <option value="gorras">Gorras y Accesorios</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fFit">Corte (Fit)</label>
+            <input type="text" id="fFit" placeholder="Ej. Regular Fit, Slim Fit, Oversize Boxy" value="Regular Fit" />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="fSizes">Tallas Disponibles (separadas por coma)</label>
+            <input type="text" id="fSizes" placeholder="Ej. S, M, L, XL o 26 MX, 27 MX, 28 MX" value="S, M, L, XL" />
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1">
+            <label class="field__label" for="fColors">Colores Disponibles (separados por coma)</label>
+            <input type="text" id="fColors" placeholder="Ej. Negro, Blanco, Arena, Azul Marino" value="Negro, Blanco, Arena" />
+          </div>
+        </div>
+
+        <!-- Notas o Materiales -->
+        <div class="field">
+          <label class="field__label" for="fNotes" id="fNotesLabel">Notas Principales del Perfume (separadas por coma) *</label>
+          <input type="text" id="fNotes" required placeholder="Ej. Vainilla, Lavanda, Madera de Cedro, Bergamota" />
+        </div>
+
+        <!-- Descripción Comercial para el Cliente -->
+        <div class="field">
+          <div class="field__label">
+            <label for="fDescription">Descripción Comercial para el Cliente *</label>
+            <button type="button" class="auto-desc-btn" id="genAutoDescBtn">
+              &#9889; Redactar descripción automática
+            </button>
+          </div>
+          <textarea
+            id="fDescription"
+            required
+            placeholder="Explica con palabras sencillas cómo huele el perfume o cómo luce la prenda y para qué ocasión se recomienda…"
+          ></textarea>
+        </div>
+
+        <!-- Imagen del Producto -->
+        <div class="field">
+          <label class="field__label">Fotografía del Producto (Optimizada 100% Gratis para Firestore)</label>
+          <div class="img-upload-box">
+            <div class="img-preview" id="fImgPreview">
+              <span style="font-size:0.7rem;color:var(--muted)">Sin foto</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.45rem">
+              <input type="file" id="fImgFile" accept="image/*" />
+              <input type="text" id="fImgUrl" placeholder="O ruta/URL: ej. img/products/dior_sauvage.jpg" />
+              <span class="field__hint">Se comprime automáticamente (~40 KB) para guardarse gratis en Firestore sin usar Storage de pago.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-modal__foot">
+          <button type="button" class="btn btn--outline" data-close-prod-modal>Cancelar</button>
+          <button type="submit" class="btn btn--primary">Publicar en Firebase</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL 2: CONFIGURACIÓN GENERAL Y HERRAMIENTAS DE CATÁLOGO ===== -->
+  <div class="admin-modal" id="settingsModal" hidden>
+    <div class="admin-modal__backdrop" data-close-settings-modal></div>
+    <div class="admin-modal__box" role="dialog" aria-modal="true">
+      <div class="admin-modal__head">
+        <h2 class="admin-modal__title">Configuración de Tienda en Firebase</h2>
+        <button type="button" class="drawer__close" data-close-settings-modal>&times;</button>
+      </div>
+
+      <form class="admin-form" id="settingsForm">
+        <div class="form-grid-2">
+          <div class="field">
+            <label class="field__label" for="sWhatsapp">WhatsApp de Ventas (con código de país, sin +)</label>
+            <input type="text" id="sWhatsapp" required placeholder="Ej. 15715809800" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="sAdminPin">PIN de Acceso a esta App Admin</label>
+            <input type="text" id="sAdminPin" required placeholder="1234" />
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="field">
+            <label class="field__label" for="sStoreName">Nombre de la Tienda</label>
+            <input type="text" id="sStoreName" required placeholder="LUXORA" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="sTagline">Subtítulo / Eslogan</label>
+            <input type="text" id="sTagline" placeholder="Perfumería Original & Moda Exclusiva" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="sAnnouncement">Mensaje de la Barra Superior</label>
+          <input type="text" id="sAnnouncement" placeholder="Perfumes 100% Originales · Ropa Formal & Streetwear · Pide directo por WhatsApp" />
+        </div>
+
+        <div class="field" style="padding-top:0.75rem;border-top:1px solid var(--border)">
+          <label class="field__label">Herramientas de Base de Datos (Opcional)</label>
+          <p class="field__hint" style="margin-bottom:0.65rem">
+            Tu tienda pública ya no tiene datos quemados: solo muestra lo que esté subido a Firebase. Puedes empezar subiendo tus productos uno por uno o usar estas acciones rápidas:
+          </p>
+          <div style="display:flex;flex-wrap:wrap;gap:0.6rem">
+            <button type="button" class="btn btn--outline btn--sm-pad" id="importSeedBtn">
+              &#9729; Importar los 95 Perfumes + 12 Prendas de Muestra a Firebase
+            </button>
+            <button type="button" class="btn btn--outline btn--sm-pad" id="clearAllCloudBtn" style="color:var(--red)">
+              Vaciar Todos los Productos de Firebase (Dejar en 0)
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-modal__foot">
+          <button type="button" class="btn btn--outline" data-close-settings-modal>Cancelar</button>
+          <button type="submit" class="btn btn--primary">Guardar Configuración en Firebase</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+  <script src="js/seed-catalog.js"></script>
+  <script src="js/admin-db.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
